@@ -1,2 +1,2 @@
-# ioblue
-The iOBlue Case
+# iOBlue
+The iOBlue Accounts Manager Case
