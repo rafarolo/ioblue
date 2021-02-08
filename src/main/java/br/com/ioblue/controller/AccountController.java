@@ -23,15 +23,15 @@ import br.com.ioblue.model.Account;
 import br.com.ioblue.model.AccountDTO;
 import br.com.ioblue.repository.AccountRepository;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/accounts")
+@CrossOrigin(origins = { "http://localhost:4200", "http://angular11.s3.us-east-2.amazonaws.com", "http://dy4791pk5q3os.cloudfront.net" })
 public class AccountController {
 
 	@Autowired
 	AccountRepository accountRepository;
 
-	@GetMapping("/accounts")
+	@GetMapping
 	public ResponseEntity<List<Account>> getAllAccountsByDoc(@RequestParam(required = false) String doc) {
 		try {
 			List<Account> accounts = new ArrayList<>();
@@ -49,7 +49,7 @@ public class AccountController {
 		}
 	}
 
-	@GetMapping("/accounts/{id}")
+	@GetMapping("/{id}")
 	public ResponseEntity<Account> getAccountById(@PathVariable("id") String id) {
 		Optional<Account> accountData = accountRepository.findById(id);
 		if (accountData.isPresent()) {
@@ -59,7 +59,7 @@ public class AccountController {
 		}
 	}
 
-	@PostMapping("/accounts")
+	@PostMapping
 	public ResponseEntity<Account> newAccount(@RequestBody AccountDTO accountDTO) {
 		try {
 			// SecureRandom random = new SecureRandom();
@@ -86,7 +86,7 @@ public class AccountController {
 		}
 	}
 
-	@PutMapping("/accounts/{id}")
+	@PutMapping("/{id}")
 	public ResponseEntity<Account> updateAccount(@PathVariable("id") String id, @RequestBody AccountDTO accountDTO) {
 		Optional<Account> accountData = accountRepository.findById(id);
 		if (accountData.isPresent()) {
@@ -102,7 +102,7 @@ public class AccountController {
 		}
 	}
 
-	@DeleteMapping("/accounts/{id}")
+	@DeleteMapping("/{id}")
 	public ResponseEntity<HttpStatus> deleteAccount(@PathVariable("id") String id) {
 		try {
 			accountRepository.deleteById(id);
@@ -112,7 +112,7 @@ public class AccountController {
 		}
 	}
 
-	@DeleteMapping("/accounts")
+	@DeleteMapping
 	public ResponseEntity<HttpStatus> deleteAllAccounts() {
 		try {
 			accountRepository.deleteAll();
@@ -122,7 +122,7 @@ public class AccountController {
 		}
 	}
 
-	@GetMapping("/accounts/active")
+	@GetMapping("/active")
 	public ResponseEntity<List<Account>> findAccountsActive() {
 		try {
 			List<Account> account = accountRepository.findByActive(true);
