@@ -5,10 +5,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.auth.AWSCredentials;
@@ -21,6 +23,9 @@ import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class AwsS3Service {
 
@@ -29,8 +34,8 @@ public class AwsS3Service {
 	@Value("${aws.s3.endpoint}")
 	private String endpoint;
 
-	@Value("${aws.s3.bucketName}")
-	private String bucketName;
+	@Value("${aws.s3.bucket}")
+	private String bucket;
 
 	@Value("${aws.accesskey}")
 	private String awsAccessKey;
@@ -48,37 +53,45 @@ public class AwsS3Service {
 	}
 
 	public String uploadFile(MultipartFile multipartFile, String fileName) {
-		// String fileName = "";
-		try {
-			File file = convertMultipartFileToFile(multipartFile);
-			// fileName = multipartFile.getOriginalFilename();
-			// fileURL = endpoint + "/" + bucketName + "/" + fileName;
-			uploadFileToBucket(fileName + multipartFile.getOriginalFilename().substring(
-					multipartFile.getOriginalFilename().length() - 5, multipartFile.getOriginalFilename().length()),
-					file);
-			file.delete();
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (multipartFile != null && StringUtils.hasLength(fileName)) {
+			// int fileNameLength = multipartFile.getOriginalFilename().length();
+			// String ext = multipartFile.getOriginalFilename().substring(fileNameLength -
+			// 5, fileNameLength);
+			// String newFileName = fileName + ext;
+			try {
+				File file = new File(fileName);
+				ImageIO.write(ImageIO.read(convertMultipartFileToFile(multipartFile, file)), "png", file);
+				// File file = convertMultipartFileToFile(multipartFile);
+				// fileName = multipartFile.getOriginalFilename();
+				uploadFileToBucketS3(fileName, file);
+				file.deleteOnExit();
+				return fileName;
+			} catch (Exception e) {
+				e.printStackTrace();				
+			}			
 		}
-		return fileName;
+		return null;
 	}
 
-	private File convertMultipartFileToFile(MultipartFile file) throws IOException {
-		File convertedFile = new File(file.getOriginalFilename());
-		FileOutputStream fos = new FileOutputStream(convertedFile);
-		fos.write(file.getBytes());
-		fos.close();
-		return convertedFile;
+	private File convertMultipartFileToFile(MultipartFile multipartFile, File file) throws IOException {
+		//File convertedFile = new File(multipartFile.getOriginalFilename());
+		try (FileOutputStream fos = new FileOutputStream(file)) {
+			fos.write(multipartFile.getBytes());
+		} catch (IOException ex) {
+			log.error("Error occurred while convert Multipart to File!");
+		}
+		return file;
 	}
 
-	private void uploadFileToBucket(String fileName, File file) {
-		amazonS3.putObject(
-				new PutObjectRequest(bucketName, fileName, file).withCannedAcl(CannedAccessControlList.PublicRead));
+	private void uploadFileToBucketS3(String fileName, File file) {
+		amazonS3.putObject(new PutObjectRequest(bucket, fileName, file)
+				.withCannedAcl(CannedAccessControlList.PublicRead));
 	}
 
 	public String deleteFileFromBucket(String fileName) {
-		amazonS3.deleteObject(new DeleteObjectRequest(bucketName, fileName));
-		return "Deletion Successful";
+		log.info("Try to delete the file " + fileName);
+		amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
+		return "File deletion successful!";
 	}
 
 	public AWSCredentialsProvider amazonAWSCredentialsProvider() {
